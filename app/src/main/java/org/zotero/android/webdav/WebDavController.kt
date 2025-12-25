@@ -20,6 +20,7 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
 import okhttp3.logging.HttpLoggingInterceptor.Level
+import org.zotero.android.ZoteroApplication
 import org.zotero.android.api.WebDavApi
 import org.zotero.android.api.interceptors.UserAgentHeaderNetworkInterceptor
 import org.zotero.android.api.network.CustomResult
@@ -36,6 +37,7 @@ import org.zotero.android.webdav.data.MetadataResult
 import org.zotero.android.webdav.data.WebDavDeletionResult
 import org.zotero.android.webdav.data.WebDavError
 import org.zotero.android.webdav.data.WebDavUploadResult
+import org.zotero.android.webdav.network.MdnsDns
 import retrofit2.Response
 import retrofit2.Retrofit
 import timber.log.Timber
@@ -777,6 +779,7 @@ class WebDavController @Inject constructor(
             .dispatcher(dispatcher)
             .connectionPool(connectionPool)
             .setNetworkTimeout(15L)
+            .dns(MdnsDns(ZoteroApplication.instance))
             .authenticator(CachingAuthenticatorDecorator(authenticator, authCache))
             .addInterceptor(
                 AuthenticationCacheInterceptor(
