@@ -61,9 +61,8 @@ class MdnsDns(
             multicastLock?.acquire()
 
             socket = try {
-                MulticastSocket(null).apply {
+                MulticastSocket(MDNS_PORT).apply {
                     reuseAddress = true
-                    bind(InetSocketAddress(MDNS_PORT))
                     joinGroup(multicastAddress)
                     soTimeout = timeoutMs
                     timeToLive = 255
