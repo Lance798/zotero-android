@@ -26,12 +26,22 @@ private const val MDNS_PORT = 5353
 class MdnsDns(
     private val context: Context,
     private val fallback: Dns = Dns.SYSTEM,
-    private val timeoutMs: Int = 2_000
+    private val timeoutMs: Int = 2_000,
+    private val cacheTtlMs: Long = 120_000
 ) : Dns {
+
+    private data class CacheEntry(val expiresAt: Long, val addresses: List<InetAddress>)
+    private val cache = mutableMapOf<String, CacheEntry>()
 
     override fun lookup(hostname: String): List<InetAddress> {
         if (hostname.isBlank()) {
             throw UnknownHostException("Hostname is empty")
+        }
+
+        cache[hostname.lowercase(Locale.US)]?.let { entry ->
+            if (entry.expiresAt > SystemClock.elapsedRealtime()) {
+                return entry.addresses
+            }
         }
 
         return try {
@@ -42,6 +52,8 @@ class MdnsDns(
             }
             val mdnsAddresses = resolveViaMdns(hostname)
             if (mdnsAddresses.isNotEmpty()) {
+                cache[hostname.lowercase(Locale.US)] =
+                    CacheEntry(SystemClock.elapsedRealtime() + cacheTtlMs, mdnsAddresses)
                 mdnsAddresses
             } else {
                 throw original
@@ -66,6 +78,11 @@ class MdnsDns(
                     joinGroup(multicastAddress)
                     soTimeout = timeoutMs
                     timeToLive = 255
+                }
+            } catch (e: SecurityException) {
+                Timber.w(e, "mDNS multicast socket not allowed, falling back to unicast socket")
+                DatagramSocket().apply {
+                    soTimeout = timeoutMs
                 }
             } catch (e: Exception) {
                 Timber.w(e, "mDNS multicast socket not available, falling back to unicast socket")
