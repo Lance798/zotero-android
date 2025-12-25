@@ -788,19 +788,21 @@ class WebDavController @Inject constructor(
                 )
             )
             .addInterceptor(userAgentHeaderNetworkInterceptor)
-            .addInterceptor(okhttp3.logging.HttpLoggingInterceptor { message ->
-                if (message.contains("Authorization")) {
-                    Timber.d("Authorization: redacted")
-                } else {
-                    Timber.d(message)
+            .addInterceptor(
+                okhttp3.logging.HttpLoggingInterceptor { message ->
+                    if (message.contains("Authorization")) {
+                        Timber.d("Authorization: redacted")
+                    } else {
+                        Timber.d(message)
+                    }
+                }.apply {
+                    level = if (shouldLogBody) {
+                        Level.BASIC
+                    } else {
+                        Level.NONE
+                    }
                 }
-            }.apply {
-                level = if (shouldLogBody) {
-                    Level.BODY
-                } else {
-                    Level.BASIC
-                }
-            })
+            )
             .build()
     }
 
@@ -812,7 +814,7 @@ class WebDavController @Inject constructor(
             .build()
     }
 
-    private fun provideWebDavApi(shouldLogBody: Boolean = true): WebDavApi {
+    private fun provideWebDavApi(shouldLogBody: Boolean = false): WebDavApi {
         val okHttpClient = provideWebDavOkHttpClient(shouldLogBody)
         val retrofit = provideWebDavRetrofit(okHttpClient)
         return retrofit.create(WebDavApi::class.java)
